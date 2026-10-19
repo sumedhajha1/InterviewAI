@@ -1,0 +1,24 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+
+# Local application data
+server/instance/*.db
+
+# Node
+client/node_modules/
+client/dist/
+
+# Logs and editor files
+*.log
+.DS_Store
+.vscode/
