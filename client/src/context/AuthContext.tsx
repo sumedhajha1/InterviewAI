@@ -7,8 +7,9 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, username: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<void>;
+  register: (identifier: string, username: string, password: string) => Promise<void>;
+  loginAsGuest: (guestName?: string) => void;
   logout: () => void;
 }
 
@@ -28,13 +29,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const verifySession = async () => {
       const storedToken = localStorage.getItem('interviewai_token');
       if (storedToken) {
+        if (storedToken.startsWith('guest_') || storedToken.startsWith('local_')) {
+          // Guest or offline session: keep without remote call
+          setIsLoading(false);
+          return;
+        }
+
         try {
           const res = await authApi.getMe();
           setUser(res.user);
           localStorage.setItem('interviewai_user', JSON.stringify(res.user));
         } catch (error) {
-          console.error('Session expired or invalid:', error);
-          logout();
+          console.warn('Backend session unreachable, keeping local session if available');
+          const saved = localStorage.getItem('interviewai_user');
+          if (!saved) {
+            logout();
+          }
         }
       }
       setIsLoading(false);
@@ -43,20 +53,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     verifySession();
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const res = await authApi.login(email, password);
+  const login = async (identifier: string, password: string) => {
+    const res = await authApi.login(identifier, password);
     setToken(res.token);
     setUser(res.user);
     localStorage.setItem('interviewai_token', res.token);
     localStorage.setItem('interviewai_user', JSON.stringify(res.user));
   };
 
-  const register = async (email: string, username: string, password: string) => {
-    const res = await authApi.register(email, username, password);
+  const register = async (identifier: string, username: string, password: string) => {
+    const res = await authApi.register(identifier, username, password);
     setToken(res.token);
     setUser(res.user);
     localStorage.setItem('interviewai_token', res.token);
     localStorage.setItem('interviewai_user', JSON.stringify(res.user));
+  };
+
+  const loginAsGuest = (guestName: string = 'Guest Engineer') => {
+    const guestUser: User = {
+      id: 999,
+      username: guestName,
+      email: `${guestName.toLowerCase().replace(/\s+/g, '_')}@guest.local`,
+      created_at: new Date().toISOString(),
+    };
+    const guestToken = 'guest_token_demo';
+    setToken(guestToken);
+    setUser(guestUser);
+    localStorage.setItem('interviewai_token', guestToken);
+    localStorage.setItem('interviewai_user', JSON.stringify(guestUser));
   };
 
   const logout = () => {
@@ -75,6 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         register,
+        loginAsGuest,
         logout,
       }}
     >
