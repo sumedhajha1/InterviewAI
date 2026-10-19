@@ -2,6 +2,7 @@ services:
   - type: web
     name: interviewai-api
     runtime: python
+    rootDir: server
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 run:app
     envVars:
@@ -20,7 +21,7 @@ services:
       - key: JWT_EXPIRATION_HOURS
         value: 24
       - key: CORS_ORIGIN
-        value: https://your-interviewai-frontend.vercel.app
+        value: "*"
 
 databases:
   - name: interviewai-db
